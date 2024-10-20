@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import SiriWaveComponent from "@/components/ui/siriwave";
 import { LogOut } from "lucide-react";
 import { useKeys } from "@/providers/keys-provider";
-import { LetMeGuessProvider } from "@/providers/let-me-guess-provider";
+import { LetMeGuessProvider, useLetMeGuess } from "@/providers/let-me-guess-provider";
 import { LetMeGuess } from "./components/let-me-guess";
 import { EnterKey } from "./components/enter-key";
 import { createGridTile } from "@/lib/utils";
+import TutorLLM from "./components/TutorLLM"; // Import the new component
+import { UserChoiceProvider, useUserChoice } from './context/UserChoiceContext';
 
 const GRID_TILE = createGridTile(10, 10);
 
@@ -25,7 +27,21 @@ export default function Home() {
     const [deepgramClient, setDeepgramClient] = useState<ListenLiveClient | null>(null);
     const [isDeepgramReady, setIsDeepgramReady] = useState(false); // To track if Deepgram is ready
 
-    const deepgramApiKey = ''; // Replace with your Deepgram API key
+	const [llmResponse, setLlmResponse] = useState<string>("");
+	const [llmGuessInput, setLlmGuessInput] = useState<string>("");
+
+
+	const { interpretation } = useLetMeGuess();
+    let setUserChoice: any;
+
+    // Ensure that useUserChoice is called only within UserChoiceProvider
+    try {
+        ({ setUserChoice } = useUserChoice());
+    } catch (error) {
+        console.warn("UserChoiceProvider is not yet initialized.");
+    }
+
+    const deepgramApiKey = 'c434b0088f0bc7ce618113749139d8c413d9317d'; // Replace with your Deepgram API key
 
     useEffect(() => {
         if (isRecording) {
@@ -37,6 +53,15 @@ export default function Home() {
         if (inited) return;
         setInited(true);
     }, [inited]);
+
+	useEffect(() => {
+		if (setUserChoice) {
+			console.log("setUserChoice presenttttttttttt")
+			setUserChoice(transcript); 
+			console.log("setting usechoice", transcript);
+			// Ensure setUserChoice is called only if it's available
+        }
+	}, [transcript]);
 
     const initializeDeepgram = () => {
         const deepgram = createClient(deepgramApiKey);
@@ -126,51 +151,55 @@ export default function Home() {
     }
 
     return (
-        <main className="h-svh" style={{ backgroundImage: `url(${GRID_TILE})` }}>
-            {!recordingCompleted && showWelcomeMessage && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="text-center font-bold text-3xl mb-4">
-                        Hey! How are you doing?
+		<UserChoiceProvider> {/* Ensure UserChoiceProvider is wrapping the whole component */}
+            <LetMeGuessProvider>
+                <main className="h-svh" style={{ backgroundImage: `url(${GRID_TILE})` }}>
+                    {!recordingCompleted && showWelcomeMessage && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <div className="text-center font-bold text-3xl mb-4">
+                                Hey! How are you doing?
+                            </div>
+                            <div className="text-center font-bold text-2xl">
+                                What would you like to draw today?
+                            </div>
+                        </div>
+                    )}
+
+                    {recordingCompleted && (
+                        <div className="drawing-area">
+                            <LetMeGuess />
+                            <TutorLLM onReceiveResponse={setLlmResponse} imageInterpretationProp={llmGuessInput} transcript = {transcript} />
+                            <p className="hint-message">{llmResponse || "LLM RESPONSE AREA"}</p>
+                        </div>
+                    )}
+
+                    {isRecording && (
+                        <div className="fixed bottom-40 left-1/2 transform -translate-x-1/2 w-full h-20">
+                            <SiriWaveComponent />
+                        </div>
+                    )}
+
+                    <Button
+                        className="fixed bottom-1 right-1"
+                        size={"icon"}
+                        variant={"ghost"}
+                        onClick={() => setKeys(null)}
+                    >
+                        <LogOut />
+                    </Button>
+
+                    <Button
+                        className="fixed bottom-20 left-1/2 transform -translate-x-1/2"
+                        onClick={handleRecord}
+                    >
+                        {isRecording ? 'Stop Recording' : 'Speak to Drawing Tutor'}
+                    </Button>
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-100 text-center">
+                        <h3 className="text-xl font-bold">Live Transcription:</h3>
+                        <p>{transcript}</p>
                     </div>
-                    <div className="text-center font-bold text-2xl">
-                        What would you like to draw today?
-                    </div>
-                </div>
-            )}
-
-            {recordingCompleted && (
-                <div className="drawing-area">
-                    <LetMeGuessProvider>
-                        <LetMeGuess />
-                    </LetMeGuessProvider>
-                </div>
-            )}
-
-            {isRecording && (
-                <div className="fixed bottom-40 left-1/2 transform -translate-x-1/2 w-full h-20">
-                    <SiriWaveComponent />
-                </div>
-            )}
-
-            <Button
-                className="fixed bottom-1 right-1"
-                size={"icon"}
-                variant={"ghost"}
-                onClick={() => setKeys(null)}
-            >
-                <LogOut />
-            </Button>
-
-            <Button
-                className="fixed bottom-20 left-1/2 transform -translate-x-1/2"
-                onClick={handleRecord}
-            >
-                {isRecording ? 'Stop Recording' : 'Speak to Drawing Tutor'}
-            </Button>
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-100 text-center">
-                <h3 className="text-xl font-bold">Live Transcription:</h3>
-                <p>{transcript}</p>
-            </div>
-        </main>
+                </main>
+            </LetMeGuessProvider>
+		</UserChoiceProvider>
     );
 }
