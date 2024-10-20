@@ -6,7 +6,7 @@ import { KeysProvider } from "@/providers/keys-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-	title: "Groq - Vision",
+	title: "Drawing Tutor",
 	description: "Draw and guess.",
 	openGraph: {
 		images: ["/og-image.png"],

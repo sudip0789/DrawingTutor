@@ -41,7 +41,7 @@ export default function Home() {
         console.warn("UserChoiceProvider is not yet initialized.");
     }
 
-    const deepgramApiKey = 'c434b0088f0bc7ce618113749139d8c413d9317d'; // Replace with your Deepgram API key
+    const deepgramApiKey = 'e6fe8a89b6c360fd972f8c713a6967a8ce725e06'; // Replace with your Deepgram API key
 
     useEffect(() => {
         if (isRecording) {
@@ -100,43 +100,43 @@ export default function Home() {
     };
 
     const handleRecord = () => {
-        setShowWelcomeMessage(false); // Hide the welcome message
-
-        if (!isRecording) {
-            //initializeDeepgram(); // Initialize Deepgram before starting the recording
-
-            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-                const recorder = new MediaRecorder(stream);
-                //const chunks: Blob[] = [];
-
-                recorder.ondataavailable = (event) => {
-                    //chunks.push(event.data);
-
-                    // Send the audio data to Deepgram in real-time only if the connection is ready
-                    if ( deepgramClient && deepgramClient.getReadyState() === 1) {
-                        console.log('Sending audio data to Deepgram'); // Debugging
-                        deepgramClient.send(event.data); // Send the audio data to Deepgram
-                    } else {
-                        console.log('Deepgram connection not ready'); // Debugging
-                    }
-                };
-
-                recorder.start(250); // Send audio every 250ms for real-time transcription
-                setMediaRecorder(recorder);
-                //setAudioChunks(chunks); // Save the chunks
-                console.log('Recording started...');
-            }).catch(err => {
-                console.error('Error accessing microphone:', err);
-            });
-        } else if (mediaRecorder) {
-            mediaRecorder.stop();
-            mediaRecorder.onstop = () => {
-                console.log('Recording stopped.');
-                setRecordingCompleted(true);
-            };
-        }
-        setIsRecording(!isRecording);
-    };
+		setShowWelcomeMessage(false); // Hide the welcome message
+	
+		if (!isRecording) {
+			navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+				const recorder = new MediaRecorder(stream);
+	
+				recorder.ondataavailable = (event) => {
+					if (deepgramClient && deepgramClient.getReadyState() === 1) {
+						console.log('Sending audio data to Deepgram'); // Debugging
+						deepgramClient.send(event.data); // Send the audio data to Deepgram
+					} else {
+						console.log('Deepgram connection not ready'); // Debugging
+					}
+				};
+	
+				recorder.start(250); // Send audio every 250ms for real-time transcription
+				setMediaRecorder(recorder);
+				console.log('Recording started...');
+			}).catch(err => {
+				console.error('Error accessing microphone:', err);
+			});
+		} else if (mediaRecorder) {
+			mediaRecorder.stop();
+			mediaRecorder.onstop = () => {
+				console.log('Recording stopped.');
+				setRecordingCompleted(true);
+				
+				// Trigger the LLM when recording is completed and transcription is ready
+				if (transcript) {
+					askLLM(); // Process the transcript when user stops speaking
+				}
+			};
+		}
+		setIsRecording(!isRecording);
+	};
+	
+	
 
     if (!inited) {
         return (
@@ -169,7 +169,8 @@ export default function Home() {
                         <div className="drawing-area">
                             <LetMeGuess />
                             <TutorLLM onReceiveResponse={setLlmResponse} imageInterpretationProp={llmGuessInput} transcript = {transcript} />
-                            <p className="hint-message">{llmResponse || "LLM RESPONSE AREA"}</p>
+                            <p className="fixed bottom-25 left-1/2 transform -translate-x-1/2" 
+							>{llmResponse || "LLM RESPONSE AREA"}</p>
                         </div>
                     )}
 

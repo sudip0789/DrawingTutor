@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer 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`, 
+        Authorization: `Bearer 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`, 
       },
       body: JSON.stringify({
         model: 'llama3-8b-8192', // Update model ID to use the correct one
