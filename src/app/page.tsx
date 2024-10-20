@@ -1,105 +1,70 @@
+//page.tsx
+
 "use client";
 import { LetMeGuess } from "./components/let-me-guess";
 import { EnterKey } from "./components/enter-key";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useKeys } from "@/providers/keys-provider";
-import { LetMeGuessProvider } from "@/providers/let-me-guess-provider";
+import { LetMeGuessProvider, useLetMeGuess } from "@/providers/let-me-guess-provider"; // Import useLetMeGuess
 import { createGridTile } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import TutorButton from "./components/TutorButton";
+import TutorLLM from "./components/TutorLLM"; // Import the new component
+import { UserChoiceProvider } from './context/UserChoiceContext';
 
 const GRID_TILE = createGridTile(10, 10);
 
 export default function Home() {
 	const { keys, setKeys } = useKeys();
-	const [inited, setInited] = useState(false);
-	const [isRecording, setIsRecording] = useState(false);
-	const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-	const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
-	const [recordingCompleted, setRecordingCompleted] = useState(false);
-
+	const [inited, setInited] = useState<boolean>(false);
+	const [llmResponse, setLlmResponse] = useState<string>("");
+	const [llmGuessInput, setLlmGuessInput] = useState<string>("");
+	const [userTranscript, setUserTranscript] = useState("")
+  
+	const { interpretation } = useLetMeGuess();
+  
 	useEffect(() => {
-		if (inited) return;
-		setInited(true);
+	  if (inited) return;
+	  setInited(true);
 	}, [inited]);
-
-	const handleRecord = () => {
-		setShowWelcomeMessage(false); // Hide the welcome message
-
-        if (!isRecording) {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(stream => {
-                    const recorder = new MediaRecorder(stream);
-                    recorder.start();
-                    setMediaRecorder(recorder);
-                    console.log('Recording started...');
-                })
-                .catch(err => {
-                    console.error('Error accessing microphone:', err);
-                });
-        } else if (mediaRecorder) {
-            mediaRecorder.stop();
-            mediaRecorder.onstop = () => {
-                console.log('Recording stopped.');
-				setRecordingCompleted(true);
-            };
-        }
-        setIsRecording(!isRecording);
-    };
-
-
+  
+	useEffect(() => {
+	  console.log("interpretation updated:", interpretation);
+	}, [interpretation]);
+  
 	if (!inited) {
-		return (
-			<main className="w-full h-svh flex items-center justify-center">
-				Loading...
-			</main>
-		);
+	  return (
+		<main className="w-full h-svh flex items-center justify-center">
+		  Loading...
+		</main>
+	  );
 	}
-
+  
 	if (!keys) {
-		return <EnterKey onSuccess={(k) => setKeys(k)} />;
+	  return <EnterKey onSuccess={(k) => setKeys(k)} />;
 	}
-
+  
 	return (
-		<main className="h-svh" style={{ backgroundImage: `url(${GRID_TILE})` }}>
-
-			{!recordingCompleted && showWelcomeMessage && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="text-center font-bold text-3xl mb-4">
-                        Hey! How are you doing?
-                    </div>
-                    <div className="text-center font-bold text-2xl">
-                        What would you like to draw today?
-                    </div>
-                </div>
-            )}
-
-			{recordingCompleted && (
-				<div className="drawing-area">
-					<LetMeGuessProvider>
-					<LetMeGuess />
-					</LetMeGuessProvider>
-				</div>
-			)}
-
-
-			<Button
+		<UserChoiceProvider>
+			<main className="h-svh" style={{ backgroundImage: `url(${GRID_TILE})` }}>
+				<LetMeGuessProvider >
+				<LetMeGuess />
+				<TutorButton setUserTranscript={setUserTranscript} />
+				<TutorLLM onReceiveResponse={setLlmResponse} imageInterpretationProp={llmGuessInput}  />
+				<p className="hint-message">{llmResponse || "LLM RESPONSE AREA"}</p>
+				</LetMeGuessProvider>
+				<Button
 				className="fixed bottom-1 right-1"
 				size={"icon"}
 				variant={"ghost"}
 				onClick={() => setKeys(null)}
-			>
+				>
 				<LogOut />
-			</Button>
+				</Button>
 
-			<Button
-                className="fixed bottom-20 left-1/2 transform -translate-x-1/2"
-                onClick={handleRecord}
-            >
-                {isRecording ? 'Stop Recording' : 'Speak to Drawing Tutor'}
-            </Button>
-
-
-		</main>
+			</main>
+		</UserChoiceProvider>
 	);
-}
+  }
+  

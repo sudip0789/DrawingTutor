@@ -17,7 +17,7 @@ export function LetMeGuess() {
 				<PaletteBar />
 				<PenAndEraserBar />
 			</DrawEditorProvider>
-			<TopChrome />
+			{/* <TopChrome /> */}
 		</>
 	);
 }
