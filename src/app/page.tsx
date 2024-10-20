@@ -13,12 +13,12 @@ import {
 	LiveTranscriptionEvent,
 	LiveTranscriptionEvents,
 	useDeepgram,
-  } from "../context/DeepgramContextProvider";
+  } from "./context/DeepgramContextProvider";
   import {
 	MicrophoneEvents,
 	MicrophoneState,
 	useMicrophone,
-  } from "../context/MicrophoneContextProvider";
+  } from "./context/MicrophoneContextProvider";
 
 const GRID_TILE = createGridTile(10, 10);
 
