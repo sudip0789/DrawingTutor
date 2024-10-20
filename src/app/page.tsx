@@ -6,7 +6,19 @@ import { LogOut } from "lucide-react";
 import { useKeys } from "@/providers/keys-provider";
 import { LetMeGuessProvider } from "@/providers/let-me-guess-provider";
 import { createGridTile } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
+import {
+	LiveConnectionState,
+	LiveTranscriptionEvent,
+	LiveTranscriptionEvents,
+	useDeepgram,
+  } from "../context/DeepgramContextProvider";
+  import {
+	MicrophoneEvents,
+	MicrophoneState,
+	useMicrophone,
+  } from "../context/MicrophoneContextProvider";
 
 const GRID_TILE = createGridTile(10, 10);
 
@@ -17,11 +29,33 @@ export default function Home() {
 	const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 	const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
 	const [recordingCompleted, setRecordingCompleted] = useState(false);
+	const { connection, connectToDeepgram, connectionState } = useDeepgram();
+	const { setupMicrophone, microphone, startMicrophone, microphoneState } =
+	  useMicrophone();
+	const captionTimeout = useRef<any>();
 
 	useEffect(() => {
 		if (inited) return;
 		setInited(true);
 	}, [inited]);
+
+	useEffect(() => {
+		setupMicrophone();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	useEffect(() => {
+		if (microphoneState === MicrophoneState.Ready) {
+		  connectToDeepgram({
+			model: "nova-2",
+			interim_results: true,
+			smart_format: true,
+			filler_words: true,
+			utterance_end_ms: 3000,
+		  });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [microphoneState]);
 
 	const handleRecord = () => {
 		setShowWelcomeMessage(false); // Hide the welcome message
